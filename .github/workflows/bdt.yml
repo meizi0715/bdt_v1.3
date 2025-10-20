@@ -1,0 +1,68 @@
+name: Run Python Script For bdt
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Check time in Japan (before setup)
+        run: |
+          HOUR=$(TZ='Asia/Tokyo' date +%H)
+          echo "現在の日本時間: ${HOUR}時"
+          if [ $HOUR -lt 6 ] && [ $HOUR -ge 3 ]; then
+            echo "現在は実行時間外（3～6時）。ジョブを終了します。"
+            exit 0
+          fi
+
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright
+
+      - name: Install dependencies
+        run: |
+          pip install playwright jpholiday beautifulsoup4
+          playwright install chromium
+
+      - name: Run script
+        env:
+          WEB_ELE: ${{ secrets.WEB_ELE }}
+          SCC_JSON: ${{ secrets.SCC_JSON }}
+          EMAIL_CONFIG: ${{ secrets.EMAIL_CONFIG }}
+        run: python main.py
+
+      - name: Commit txt file to repo
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+
+          if [ -f .gitignore ]; then
+            git add .gitignore
+          fi
+
+          git add -A output
+
+          if [ -n "$(git status --porcelain)" ]; then
+            git commit -m "Update result files"
+            git pull --rebase
+            git push
+          else
+            echo "📭 没有变更需要提交，跳过 commit"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

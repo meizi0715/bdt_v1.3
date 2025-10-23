@@ -200,7 +200,7 @@ async def process_kaikan(playwright, kaikan, kaikan21, kaikan22, _, page_lc, lab
     await page.wait_for_load_state("domcontentloaded")
     frame = page.frame(name="MainFrame")
     if not frame:
-        print(f"❌ MainFrame not found for {name}")
+        print(f"❌ MainFrame not found for {name[0]}")
         await browser.close()
         return []
 
@@ -229,7 +229,7 @@ async def process_kaikan(playwright, kaikan, kaikan21, kaikan22, _, page_lc, lab
             await frame.locator("input[name='disp_mode'][value='0']").click()
 
     except Exception as e:
-        print(f"⚠️ {name} - 弹窗处理失败: {e}")
+        print(f"⚠️ {name[0]} - 弹窗处理失败: {e}")
 
     result = []
 
